@@ -90,10 +90,8 @@ else()
     DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
     )
 
-  install(FILES
-    examples/v4l.launch
-    examples/gscam_nodelet.launch
-    examples/nodelet_pipeline.launch
+  install(DIRECTORY
+    examples
     DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
     )
 

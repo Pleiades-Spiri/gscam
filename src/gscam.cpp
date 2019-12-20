@@ -128,6 +128,7 @@ namespace gscam {
     // Create RGB sink
     sink_ = gst_element_factory_make("appsink",NULL);
     GstCaps * caps = gst_app_sink_get_caps(GST_APP_SINK(sink_));
+    
 
 #if (GST_VERSION_MAJOR == 1)
     // http://gstreamer.freedesktop.org/data/doc/gstreamer/head/pwg/html/section-types-definitions.html
@@ -261,6 +262,7 @@ namespace gscam {
       return;
     }
     ROS_INFO("Started stream.");
+    std::cout<<image_encoding_<<std::endl;
 
     // Poll the data as fast a spossible
     while(ros::ok()) 
@@ -268,8 +270,15 @@ namespace gscam {
       // This should block until a new frame is awake, this way, we'll run at the
       // actual capture framerate of the device.
       // ROS_DEBUG("Getting data...");
+
 #if (GST_VERSION_MAJOR == 1)
-      GstSample* sample = gst_app_sink_pull_sample(GST_APP_SINK(sink_));
+
+      std::cout<<gst_caps_to_string(gst_app_sink_get_caps(GST_APP_SINK(sink_)))<<std::endl;
+      GstAppSink* AppSink_= GST_APP_SINK(sink_);
+      std::cout<<gst_app_sink_is_eos(AppSink_)<<std::endl;
+      GstSample* sample = gst_app_sink_pull_sample(AppSink_);
+      std::cout<<"Arrived here"<<std::endl;
+
       if(!sample) {
         ROS_ERROR("Could not get gstreamer sample.");
         break;
@@ -281,10 +290,12 @@ namespace gscam {
       gst_memory_map(memory, &info, GST_MAP_READ);
       gsize &buf_size = info.size;
       guint8* &buf_data = info.data;
+
 #else
       GstBuffer* buf = gst_app_sink_pull_buffer(GST_APP_SINK(sink_));
       guint &buf_size = buf->size;
       guint8* &buf_data = buf->data;
+
 #endif
       GstClockTime bt = gst_element_get_base_time(pipeline_);
       // ROS_INFO("New buffer: timestamp %.6f %lu %lu %.3f",
@@ -310,12 +321,15 @@ namespace gscam {
       // ROS_DEBUG("Got data.");
 
       // Get the image width and height
+
       GstPad* pad = gst_element_get_static_pad(sink_, "sink");
 #if (GST_VERSION_MAJOR == 1)
       const GstCaps *caps = gst_pad_get_current_caps(pad);
 #else
       const GstCaps *caps = gst_pad_get_negotiated_caps(pad);
 #endif
+      //caps = gst_caps_new_simple( "video/x-raw", "format", G_TYPE_STRING, "RGB",NULL); //hardcode the caps by safy 
+
       GstStructure *structure = gst_caps_get_structure(caps,0);
       gst_structure_get_int(structure,"width",&width_);
       gst_structure_get_int(structure,"height",&height_);
@@ -377,6 +391,7 @@ namespace gscam {
           } else {
               img->step = width_;
           }
+          std::cout<<buf_size<<std::endl;
           std::copy(
                   buf_data,
                   (buf_data)+(buf_size),
